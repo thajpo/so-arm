@@ -11,10 +11,11 @@ Build a robust sim-to-real learning stack for SO-101 manipulation, starting with
 ## Collaboration Workflow (Required)
 1. Discuss ideas and narrow to what matters.
 2. Write/approve a concrete feature spec in `current.md` (`Specd` section).
-3. Implement the feature.
-4. Add/adjust tests so the feature has at least one passing test proving behavior.
-5. Share concise implementation notes + test results.
-6. User reviews/merges, then repeat.
+3. Convert one `Specd: Ready` item into one GitHub issue with explicit file-touch scope.
+4. Implement the feature from that issue in one isolated branch/worktree.
+5. Add/adjust tests so the feature has at least one passing test proving behavior.
+6. Share concise implementation notes + test results.
+7. User reviews/merges, then repeat.
 
 ## Implementation Principles
 - Prefer simple baselines first (clear failures > complex stacks).

@@ -1,11 +1,16 @@
 # current
 
-Last updated: 2026-02-08
+Last updated: 2026-02-14
 Canonical planning/discussion file for this repo (lean-flow).
 
 ## Institutional Knowledge
 - Project intent: build a robust sim-to-real SO-101 stack, starting with single-arm v0 and expanding to bimanual later.
 - Workflow contract: spec-first, terminal-first, test-first.
+- Workflow policy (issue/PR contract):
+  - `Specd` promotion to `ready` requires explicit user intent/approval evidence.
+  - A `ready` Specd item must be converted to exactly one GitHub issue before implementation.
+  - Each issue must declare file-touch scope before coding starts.
+  - Execution mapping is strict: one issue -> one branch -> one worktree -> one PR.
 - Specd lifecycle contract:
   - `ready` -> `in_progress` -> `review` (PR open/under review)
   - prune Specd item only after PR merge
