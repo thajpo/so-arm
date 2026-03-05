@@ -8,7 +8,7 @@ import mujoco
 import mujoco.viewer
 import numpy as np
 
-MODEL_PATH = Path(__file__).parent / "models" / "so101" / "scene.xml"
+MODEL_PATH = Path(__file__).parent.parent / "models" / "so101" / "scene.xml"
 
 print(f"Loading model from: {MODEL_PATH}")
 

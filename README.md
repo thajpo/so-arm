@@ -20,6 +20,21 @@ uv run test_so101.py
 uv run view_so101.py
 ```
 
+### Inspect/control USB motor controller
+```bash
+# list serial devices and choose the controller path
+uv run motor_usb.py list
+
+# monitor incoming serial bytes for 10 seconds
+uv run motor_usb.py monitor --port /dev/cu.usbmodem5AE60836341 --baud 115200 --seconds 10
+
+# send a text command (newline appended by default)
+uv run motor_usb.py send --port /dev/cu.usbmodem5AE60836341 --baud 115200 --text "MOTOR 120"
+
+# send raw hex bytes
+uv run motor_usb.py send --port /dev/cu.usbmodem5AE60836341 --baud 115200 --hex-payload "FF 01 00"
+```
+
 ## Model
 
 The SO-101 model is from [TheRobotStudio/SO-ARM100](https://github.com/TheRobotStudio/SO-ARM100).

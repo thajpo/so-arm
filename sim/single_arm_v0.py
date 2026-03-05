@@ -10,7 +10,7 @@ from typing import Final
 import mujoco
 import numpy as np
 
-MODEL_PATH: Final[Path] = Path(__file__).parent / "models" / "so101" / "single_arm_task.xml"
+MODEL_PATH: Final[Path] = Path(__file__).parent.parent / "models" / "so101" / "single_arm_task.xml"
 JOINT_ORDER: Final[tuple[str, ...]] = (
     "shoulder_pan",
     "shoulder_lift",

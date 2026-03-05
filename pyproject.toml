@@ -8,6 +8,7 @@ dependencies = [
     "brax>=0.14.0",
     "mujoco>=3.4.0",
     "mujoco-mjx>=3.4.0",
+    "pyserial>=3.5",
     # Linux (ROCm) - Preserving your working setup
     "jax==0.7.1; sys_platform == 'linux'",
     "jax-rocm7-pjrt==0.7.1; sys_platform == 'linux'",
@@ -16,8 +17,12 @@ dependencies = [
     # macOS (Apple Silicon) - Standard JAX
     "jax>=0.4.35; sys_platform == 'darwin'",
     "jaxlib>=0.4.35; sys_platform == 'darwin'",
+    "wandb>=0.25.0",
+    "opencv-python>=4.13.0.92",
+    "lerobot[feetech]>=0.3.3",
 ]
 
 [project.scripts]
 test-sim = "test_so101:main"
 view-arm = "view_so101:main"
+motor-usb = "motor_usb:main"

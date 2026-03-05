@@ -9,7 +9,7 @@ import jax.numpy as jnp
 import mujoco
 from mujoco import mjx
 
-MODEL_PATH = Path(__file__).parent / "models" / "so101" / "scene.xml"
+MODEL_PATH = Path(__file__).parent.parent / "models" / "so101" / "scene.xml"
 
 print(f"Loading model from: {MODEL_PATH}")
 print(f"JAX devices: {jax.devices()}")
