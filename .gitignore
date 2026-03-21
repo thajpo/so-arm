@@ -8,3 +8,4 @@ so_arm.egg-info/
 .github/
 .ruff_cache/
 models/
+*.safetensors
