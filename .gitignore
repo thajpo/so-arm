@@ -1,12 +1,11 @@
 __pycache__/
 *.py[cod]
+.DS_Store
 outputs/
 .venv/
 models/
 .env
 so_arm.egg-info/
-.github/
 .ruff_cache/
-models/
 *.safetensors
 hardware.toml
