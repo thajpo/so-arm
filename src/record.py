@@ -1,58 +1,44 @@
-from functools import wraps
+from datetime import datetime
+from pathlib import Path
 
-from lerobot.cameras.opencv.camera_opencv import OpenCVCamera
-from lerobot.cameras.opencv.configuration_opencv import OpenCVCameraConfig
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from lerobot.datasets.utils import hw_to_dataset_features
-from lerobot.record import record_loop
-from lerobot.robots.so101_follower.config_so101_follower import SO101FollowerConfig
-from lerobot.robots.so101_follower.so101_follower import SO101Follower
-from lerobot.teleoperators.so101_leader.config_so101_leader import SO101LeaderConfig
-from lerobot.teleoperators.so101_leader.so101_leader import SO101Leader
+from lerobot.processor import make_default_processors
+from lerobot.robots.so_follower.config_so_follower import SO101FollowerConfig
+from lerobot.robots.so_follower.so_follower import SO101Follower
+from lerobot.scripts.lerobot_record import record_loop
+from lerobot.teleoperators.so_leader.config_so_leader import SO101LeaderConfig
+from lerobot.teleoperators.so_leader.so_leader import SO101Leader
 from lerobot.utils.control_utils import init_keyboard_listener
 from lerobot.utils.utils import log_say
-from lerobot.utils.visualization_utils import _init_rerun
+from lerobot.utils.visualization_utils import init_rerun
 
-# keep timing out w/ the 200ms default so we can monkey patch
-_original_async_read = OpenCVCamera.async_read
-
-
-@wraps(_original_async_read)
-def _async_read_with_longer_timeout(self, timeout_ms: float = 500):
-    return _original_async_read(self, timeout_ms=timeout_ms)
-
-
-OpenCVCamera.async_read = _async_read_with_longer_timeout
+from hardware_config import build_camera_configs, load_hardware_config
 
 NUM_EPISODES = 5
-FPS = 30
 EPISODE_TIME_SEC = 60
 RESET_TIME_SEC = 10
 TASK_DESCRIPTION = "My task description"
-
-# camera parametere
-w_cam_front = 640
-h_cam_front = 480
-w_wrist = 640
-h_wrist = 480
+CAMERA_NAMES = ("front", "top")
+hardware_config = load_hardware_config()
+FPS = hardware_config.require_shared_fps(CAMERA_NAMES)
+DATASET_ROOT = (
+    Path(__file__).resolve().parents[1]
+    / "outputs"
+    / "datasets"
+    / f"record-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+)
 
 # Create robot configuration
 robot_config = SO101FollowerConfig(
     id="follower",
-    cameras={
-        "front": OpenCVCameraConfig(
-            index_or_path=0, width=w_cam_front, height=h_cam_front, fps=FPS
-        ),
-        "top": OpenCVCameraConfig(
-            index_or_path=1, width=w_wrist, height=h_wrist, fps=FPS
-        ),
-    },
-    port="/dev/cu.usbmodem5AE60836341",
+    cameras=build_camera_configs(hardware_config, CAMERA_NAMES),
+    port=hardware_config.require_port("follower"),
 )
 
 teleop_config = SO101LeaderConfig(
     id="leader",
-    port="/dev/cu.usbmodem5A7C1183711",
+    port=hardware_config.require_port("leader"),
 )
 
 # Initialize the robot and teleoperator
@@ -68,14 +54,17 @@ dataset = LeRobotDataset.create(
     repo_id="ThaJpo/so-arm-test",
     fps=FPS,
     features=dataset_features,
+    root=DATASET_ROOT,
     robot_type=robot.name,
     use_videos=True,
     image_writer_threads=4,
 )
 
+teleop_action_processor, robot_action_processor, robot_observation_processor = make_default_processors()
+
 # Initialize the keyboard listener and rerun visualization
 _, events = init_keyboard_listener()
-_init_rerun(session_name="recording")
+init_rerun(session_name="recording")
 
 # Connect the robot and teleoperator
 robot.connect()
@@ -89,11 +78,14 @@ while episode_idx < NUM_EPISODES and not events["stop_recording"]:
         robot=robot,
         events=events,
         fps=FPS,
+        teleop_action_processor=teleop_action_processor,
+        robot_action_processor=robot_action_processor,
+        robot_observation_processor=robot_observation_processor,
         teleop=teleop,
         dataset=dataset,
         control_time_s=EPISODE_TIME_SEC,
         single_task=TASK_DESCRIPTION,
-        display_data=False,
+        display_data=True,
     )
 
     # Reset the environment if not stopping or re-recording
@@ -105,10 +97,13 @@ while episode_idx < NUM_EPISODES and not events["stop_recording"]:
             robot=robot,
             events=events,
             fps=FPS,
+            teleop_action_processor=teleop_action_processor,
+            robot_action_processor=robot_action_processor,
+            robot_observation_processor=robot_observation_processor,
             teleop=teleop,
             control_time_s=RESET_TIME_SEC,
             single_task=TASK_DESCRIPTION,
-            display_data=False,
+            display_data=True,
         )
 
     if events["rerecord_episode"]:

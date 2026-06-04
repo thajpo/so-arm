@@ -1,20 +1,35 @@
+from pathlib import Path
+import sys
+
 import cv2
 import numpy as np
-from lerobot.cameras.opencv.configuration_opencv import OpenCVCameraConfig
 from lerobot.cameras.opencv.camera_opencv import OpenCVCamera
 from lerobot.cameras.configs import ColorMode, Cv2Rotation
 
-FPS = 30
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-configs = {
-    "front": OpenCVCameraConfig(index_or_path=1, width=1920, height=1080, fps=FPS, color_mode=ColorMode.RGB, rotation=Cv2Rotation.NO_ROTATION),
-    "top": OpenCVCameraConfig(index_or_path=0, width=1920, height=1080, fps=FPS, color_mode=ColorMode.RGB, rotation=Cv2Rotation.NO_ROTATION),
-}
+from hardware_config import build_camera_configs, load_hardware_config
+from lerobot_camera_compat import apply_opencv_linux_compat_patch
+
+
+CAMERA_NAMES = ("front", "top")
+apply_opencv_linux_compat_patch()
+
+hardware_config = load_hardware_config()
+configs = build_camera_configs(hardware_config, CAMERA_NAMES)
+display_width = sum(config.width for config in configs.values())
+display_height = max(config.height for config in configs.values())
+
+for config in configs.values():
+    config.color_mode = ColorMode.RGB
+    config.rotation = Cv2Rotation.NO_ROTATION
 
 cameras = {name: OpenCVCamera(cfg) for name, cfg in configs.items()}
 
-for name, cam in cameras.items():
-    print(f"Connecting {name} camera...")
+for name in CAMERA_NAMES:
+    camera_device = hardware_config.require_camera(name).device
+    print(f"Connecting {name} camera at {camera_device}...")
+    cam = cameras[name]
     cam.connect()
 
 try:
@@ -27,8 +42,7 @@ try:
         # Stack frames side by side
         combined = np.hstack(list(frames.values()))
 
-        # Resize for display so it fits on screen (two 1920x1080 = 3840 wide)
-        display = cv2.resize(combined, (1920, 540))
+        display = cv2.resize(combined, (display_width, display_height))
         cv2.imshow("Dual Camera Feed (press q to quit)", display)
 
         if cv2.waitKey(1) & 0xFF == ord("q"):

@@ -1,0 +1,19 @@
+[ports]
+follower = "/dev/ttyACM0"
+leader = "/dev/ttyACM1"
+
+[cameras.front]
+device = 0
+width = 640
+height = 480
+fps = 30
+fourcc = "MJPG"
+backend = "v4l2"
+
+[cameras.top]
+device = 1
+width = 640
+height = 480
+fps = 30
+fourcc = "MJPG"
+backend = "v4l2"

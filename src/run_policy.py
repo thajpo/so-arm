@@ -2,39 +2,36 @@ from __future__ import annotations
 
 import json
 import shutil
-from functools import wraps
+from datetime import datetime
 from pathlib import Path
 
 from huggingface_hub import snapshot_download
-from lerobot.cameras.opencv.camera_opencv import OpenCVCamera
-from lerobot.cameras.opencv.configuration_opencv import OpenCVCameraConfig
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from lerobot.datasets.utils import hw_to_dataset_features
 from lerobot.policies.act.modeling_act import ACTPolicy
-from lerobot.record import record_loop
-from lerobot.robots.so101_follower.config_so101_follower import SO101FollowerConfig
-from lerobot.robots.so101_follower.so101_follower import SO101Follower
+from lerobot.processor import make_default_processors
+from lerobot.robots.so_follower.config_so_follower import SO101FollowerConfig
+from lerobot.robots.so_follower.so_follower import SO101Follower
+from lerobot.scripts.lerobot_record import record_loop
 from lerobot.utils.control_utils import init_keyboard_listener
 from lerobot.utils.utils import log_say
-from lerobot.utils.visualization_utils import _init_rerun
+from lerobot.utils.visualization_utils import init_rerun
 
-_original_async_read = OpenCVCamera.async_read
-
-
-@wraps(_original_async_read)
-def _async_read_with_longer_timeout(self, timeout_ms: float = 500):
-    return _original_async_read(self, timeout_ms=timeout_ms)
-
-
-OpenCVCamera.async_read = _async_read_with_longer_timeout
+from hardware_config import build_camera_configs, load_hardware_config
 
 NUM_EPISODES = 1
-FPS = 30
 EPISODE_TIME_SEC = 30
 TASK_DESCRIPTION = "Block move"
+CAMERA_NAMES = ("front", "top")
 
 HF_MODEL_ID = "ThaJpo/hf_act_recordpolicy2"
 HF_DATASET_ID = "ThaJpo/random-for-policy"
+DATASET_ROOT = (
+    Path(__file__).resolve().parents[1]
+    / "outputs"
+    / "datasets"
+    / f"policy-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+)
 
 LOCAL_MODEL_ROOT = Path(__file__).resolve().parents[1] / "models"
 LOCAL_MODEL_DIR = LOCAL_MODEL_ROOT / "hf_act_recordpolicy2"
@@ -83,15 +80,14 @@ def prepare_local_policy_repo() -> Path:
     return PATCHED_MODEL_DIR
 
 
-camera_config = {
-    "front": OpenCVCameraConfig(index_or_path=0, width=640, height=480, fps=FPS),
-    "top": OpenCVCameraConfig(index_or_path=1, width=640, height=480, fps=FPS),
-}
+hardware_config = load_hardware_config()
+camera_config = build_camera_configs(hardware_config, CAMERA_NAMES)
+FPS = hardware_config.require_shared_fps(CAMERA_NAMES)
 
 robot_config = SO101FollowerConfig(
     id="follower",
     cameras=camera_config,
-    port="/dev/cu.usbmodem5AE60836341",
+    port=hardware_config.require_port("follower"),
 )
 
 model_dir = prepare_local_policy_repo()
@@ -107,13 +103,16 @@ dataset = LeRobotDataset.create(
     repo_id=HF_DATASET_ID,
     fps=FPS,
     features=dataset_features,
+    root=DATASET_ROOT,
     robot_type=robot.name,
     use_videos=True,
     image_writer_threads=4,
 )
 
+teleop_action_processor, robot_action_processor, robot_observation_processor = make_default_processors()
+
 _, events = init_keyboard_listener()
-_init_rerun(session_name="policy-inference")
+init_rerun(session_name="policy-inference")
 
 robot.connect()
 
@@ -131,6 +130,9 @@ try:
             robot=robot,
             events=events,
             fps=FPS,
+            teleop_action_processor=teleop_action_processor,
+            robot_action_processor=robot_action_processor,
+            robot_observation_processor=robot_observation_processor,
             policy=policy,
             dataset=dataset,
             control_time_s=EPISODE_TIME_SEC,

@@ -9,3 +9,4 @@ so_arm.egg-info/
 .ruff_cache/
 models/
 *.safetensors
+hardware.toml
